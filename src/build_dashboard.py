@@ -28,27 +28,26 @@ def load_model() -> pd.DataFrame:
 
 
 def build_payload(f: pd.DataFrame) -> dict:
+    """Une seule table 'rows' : produit x mois x période (N / N-1). Assez fine pour filtrer par catégorie,
+    produit et mois dans le navigateur, assez légère pour tenir dans un fichier HTML autonome."""
     cats = sorted(f["category_name_fr"].unique())
     cat_idx = {c: i for i, c in enumerate(cats)}
     cur = f[f["period"].isin(["N", "N-1"])].copy()
-    cur["c"] = cur["category_name_fr"].map(cat_idx)
-    cur["d"] = cur["is_discount"].astype(int)
-    cur["p"] = cur["period"]
-
-    monthly = (cur.groupby(["p", "month_in_period", "c", "d"], as_index=False)[MEASURES].sum()
-               .rename(columns={"month_in_period": "m"}))
-    products = (cur.groupby(["p", "c", "d", "item_label"], as_index=False)[MEASURES].sum())
-    loss_by_item = f.drop_duplicates("item_code").set_index("item_label")["loss_rate_pct"].to_dict()
-    products["loss_pct"] = products["item_label"].map(loss_by_item)
-
-    def rows(df: pd.DataFrame) -> list[dict]:
-        return json.loads(df.round(2).to_json(orient="records"))
-
+    cur["ca_promo"] = cur["revenue_net"].where(cur["is_discount"], 0.0)
+    cur["mb_promo"] = cur["gross_margin"].where(cur["is_discount"], 0.0)
+    cur["mal_promo"] = cur["margin_after_loss"].where(cur["is_discount"], 0.0)
+    g = (cur.groupby(["period", "month_in_period", "category_name_fr", "item_label"], as_index=False)
+            [["revenue_net", "ca_promo", "mb_promo", "mal_promo", "quantity_sold_kg", "gross_margin", "margin_after_loss", "loss_cost", "cost_purchase"]].sum())
+    g["c"] = g["category_name_fr"].map(cat_idx)
+    g = g.rename(columns={"period": "p", "month_in_period": "m", "item_label": "item", "revenue_net": "ca",
+                          "quantity_sold_kg": "vol", "gross_margin": "mb", "margin_after_loss": "mal",
+                          "loss_cost": "lc", "cost_purchase": "cp"}).drop(columns="category_name_fr")
+    loss = f.drop_duplicates("item_code").set_index("item_label")["loss_rate_pct"]
     return {
         "categories": cats,
         "months": MONTHS_FR,
-        "monthly": rows(monthly),
-        "products": rows(products),
+        "rows": json.loads(g.round(1).to_json(orient="records")),
+        "loss_pct": {k: round(float(v), 2) for k, v in loss.items()},
         "period_labels": {"N": "juil. 2022 – juin 2023", "N-1": "juil. 2021 – juin 2022"},
     }
 
