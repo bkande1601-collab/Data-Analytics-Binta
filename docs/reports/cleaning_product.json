@@ -1,0 +1,49 @@
+{
+  "table": "product",
+  "lignes_entree": 251,
+  "lignes_sortie": 251,
+  "regles": [
+    {
+      "regle": "codes en texte",
+      "lignes_concernees": 251,
+      "action": "conversion en string",
+      "justification_metier": "un code de 15 chiffres converti en float perdrait des chiffres et casserait les jointures"
+    },
+    {
+      "regle": "espaces parasites (item_name)",
+      "lignes_concernees": 6,
+      "action": "strip + espaces multiples réduits",
+      "justification_metier": "évite qu'un même produit apparaisse sous deux écritures dans un filtre du dashboard"
+    },
+    {
+      "regle": "clé ou catégorie manquante",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée",
+      "justification_metier": "impossible de rattacher le produit à une transaction ou à une catégorie"
+    },
+    {
+      "regle": "doublons sur item_code",
+      "lignes_concernees": 0,
+      "action": "on garde la 1re occurrence",
+      "justification_metier": "clé primaire de la dimension : un doublon multiplierait les ventes lors du JOIN"
+    },
+    {
+      "regle": "code catégorie avec plusieurs libellés",
+      "lignes_concernees": 0,
+      "action": "contrôle (aucune action si 0)",
+      "justification_metier": "garantit une hiérarchie propre pour les graphiques par catégorie"
+    },
+    {
+      "regle": "noms de produit en double (codes différents)",
+      "lignes_concernees": 8,
+      "action": "item_label unique créé",
+      "justification_metier": "deux articles distincts ne doivent pas être fusionnés mais doivent rester lisibles"
+    },
+    {
+      "regle": "traduction des catégories",
+      "lignes_concernees": 251,
+      "action": "colonne category_name_fr ajoutée",
+      "justification_metier": "dashboard destiné au Comex francophone"
+    }
+  ]
+}
