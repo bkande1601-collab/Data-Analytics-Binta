@@ -1,0 +1,73 @@
+{
+  "table": "transaction",
+  "lignes_entree": 878503,
+  "lignes_sortie": 878503,
+  "regles": [
+    {
+      "regle": "conversion types numériques / code texte",
+      "lignes_concernees": 878503,
+      "action": "float / string",
+      "justification_metier": "calculs de CA et de volume"
+    },
+    {
+      "regle": "heures à millisecondes tronquées (formats hétérogènes)",
+      "lignes_concernees": 18841,
+      "action": "complétées à 3 décimales + colonne datetime",
+      "justification_metier": "permet de trier les tickets et d'analyser par heure"
+    },
+    {
+      "regle": "date/heure illisibles",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée",
+      "justification_metier": "sans date, la vente ne peut pas être comparée à N-1"
+    },
+    {
+      "regle": "remise (Yes/No) -> booléen",
+      "lignes_concernees": 0,
+      "action": "valeurs inconnues = pas de remise",
+      "justification_metier": "le prix vendu inclut déjà la remise ; on l'utilise pour mesurer l'effet promo"
+    },
+    {
+      "regle": "incohérence type (sale/return) vs signe de la quantité",
+      "lignes_concernees": 0,
+      "action": "type recalculé d'après le signe",
+      "justification_metier": "le signe de la quantité fait foi"
+    },
+    {
+      "regle": "retours (quantité négative)",
+      "lignes_concernees": 461,
+      "action": "conservés, flag is_return ; qté retournée en positif à part",
+      "justification_metier": "le CA 'net' = ventes - retours ; les ignorer surévaluerait le CA, les supprimer sans les compter aussi"
+    },
+    {
+      "regle": "quantité nulle/manquante ou prix <= 0",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée",
+      "justification_metier": "ne représente aucune vente réelle"
+    },
+    {
+      "regle": "doublons stricts",
+      "lignes_concernees": 0,
+      "action": "1re occurrence conservée",
+      "justification_metier": "deux lignes identiques à la milliseconde = double scan, pas deux ventes"
+    },
+    {
+      "regle": "item_code absent de product.csv (orphelins)",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée",
+      "justification_metier": "sans catégorie la vente ne peut pas apparaître dans l'analyse par catégorie"
+    },
+    {
+      "regle": "quantités aberrantes (IQR x3.0 par article, ex. 160 kg en une ligne)",
+      "lignes_concernees": 5374,
+      "action": "flag is_qty_outlier (conservées)",
+      "justification_metier": "achats en gros possibles (restauration) : on signale, et on mesure leur poids dans le CA"
+    },
+    {
+      "regle": "prix de vente aberrants (IQR x3.0 par article)",
+      "lignes_concernees": 11096,
+      "action": "flag is_price_outlier (conservées)",
+      "justification_metier": "le prix peut réellement varier fortement (saison, remise) : on signale sans supprimer"
+    }
+  ]
+}
