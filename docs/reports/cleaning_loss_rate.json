@@ -1,0 +1,55 @@
+{
+  "table": "loss_rate",
+  "lignes_entree": 251,
+  "lignes_sortie": 251,
+  "regles": [
+    {
+      "regle": "BOM + code en texte",
+      "lignes_concernees": 251,
+      "action": "encodage utf-8-sig, code en string",
+      "justification_metier": "le fichier commence par un caractère invisible (BOM) qui renommerait la 1re colonne"
+    },
+    {
+      "regle": "espaces parasites (item_name)",
+      "lignes_concernees": 6,
+      "action": "strip",
+      "justification_metier": "cohérence avec product.csv"
+    },
+    {
+      "regle": "espace final dans le taux + conversion numérique",
+      "lignes_concernees": 251,
+      "action": "strip puis float",
+      "justification_metier": "sans cela le taux reste du texte et aucune moyenne n'est possible"
+    },
+    {
+      "regle": "taux manquant ou illisible",
+      "lignes_concernees": 0,
+      "action": "laissé NaN ici ; imputé par la médiane de la catégorie à la consolidation (flag)",
+      "justification_metier": "la médiane de catégorie est robuste aux valeurs extrêmes (consigne cours : médiane)"
+    },
+    {
+      "regle": "taux hors [0 ; 100] %",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée",
+      "justification_metier": "un pourcentage de perte ne peut pas sortir de cet intervalle"
+    },
+    {
+      "regle": "doublons sur item_code",
+      "lignes_concernees": 0,
+      "action": "1re occurrence conservée",
+      "justification_metier": "un seul taux de perte par article"
+    },
+    {
+      "regle": "valeurs aberrantes IQR x3.0 (bornes -0.5 - 19.8 %)",
+      "lignes_concernees": 8,
+      "action": "colonne is_loss_outlier (lignes conservées)",
+      "justification_metier": "une perte très élevée est une information métier, pas une erreur de saisie"
+    },
+    {
+      "regle": "taux = 0 %",
+      "lignes_concernees": 22,
+      "action": "colonne is_zero_loss (conservé)",
+      "justification_metier": "0 % de perte sur un produit frais est suspect : à signaler au métier, pas à corriger seul"
+    }
+  ]
+}
