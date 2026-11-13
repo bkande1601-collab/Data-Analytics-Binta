@@ -8,7 +8,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from src import build_dashboard, build_gold, clean_loss_rate, clean_price, clean_product, clean_transaction
+from src import build_dashboard, build_slides, build_gold, clean_loss_rate, clean_price, clean_product, clean_transaction
 from src.common import RAW
 
 
@@ -25,6 +25,7 @@ def main() -> None:
         step.main()
     build_gold.main()
     build_dashboard.main()
+    build_slides.main()
     from src import report_md
     report_md.main()
     if not args.no_figures:

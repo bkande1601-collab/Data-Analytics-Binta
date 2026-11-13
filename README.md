@@ -8,7 +8,7 @@ Le dépôt contient les **3 exercices du cours** :
 |---|---|---|
 | **1** – Compréhension métier | 5W, dictionnaire des données, pièges, maquette | [`docs/exercice-1-comprehension.md`](docs/exercice-1-comprehension.md) |
 | **2** – Nettoyage et modélisation | Code de nettoyage (4 fichiers), modèle en étoile, stratégie Git | `src/`, ce README (étapes 1 à 3), [`docs/regles_nettoyage.md`](docs/regles_nettoyage.md) |
-| **3** – DataViz / Reporting | Dashboard interactif + analyse | [`dashboard/dashboard.html`](dashboard/dashboard.html), [`docs/exercice-3-dataviz.md`](docs/exercice-3-dataviz.md) |
+| **3** – DataViz / Reporting | Dashboard interactif (HTML) + présentation Comex (PDF) | [`dashboard/dashboard.html`](dashboard/dashboard.html), [`livrables/Presentation_Produits_Frais.pdf`](livrables/Presentation_Produits_Frais.pdf), [`docs/exercice-3-dataviz.md`](docs/exercice-3-dataviz.md) |
 
 ![Aperçu du dashboard](figures/dashboard_apercu.png)
 
@@ -36,7 +36,7 @@ pytest
 
 Durée : environ 15 secondes. Résultat : `data/silver/` (données propres), `data/gold/` (modèle en étoile), `dashboard/dashboard.html`, `figures/`, `docs/reports/`.
 
-> **Sans** `transaction.csv`, on peut quand même ouvrir `dashboard/dashboard.html` et régénérer le dashboard : `python -m src.build_dashboard` (il utilise `data/gold/fact_ventes_jour.csv`, versionné).
+> **Sans** `transaction.csv`, on peut quand même ouvrir `dashboard/dashboard.html` et régénérer le dashboard : `python -m src.build_dashboard` (et `python -m src.build_slides` pour la présentation PDF, via Chrome) (il utilise `data/gold/fact_ventes_jour.csv`, versionné).
 
 ### Données
 
