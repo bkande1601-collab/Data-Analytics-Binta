@@ -1,6 +1,8 @@
 # Exercice 3 – Restitution au Comex : dashboard « Produits frais »
 
-**Livrable** : [`dashboard/dashboard.html`](../dashboard/dashboard.html), un fichier unique et autonome (aucune connexion ni serveur : double-clic pour l'ouvrir dans un navigateur). Option choisie : **Option A – Dashboard interactif** (filtres catégorie et remise).
+**Livrable** : [`dashboard/dashboard.html`](../dashboard/dashboard.html), un fichier unique et autonome (aucune connexion ni serveur : double-clic pour l'ouvrir dans un navigateur). Option choisie : **Option A – Dashboard interactif** (filtres catégorie, produit et mois) **et** une présentation de 6 slides : [`livrables/Presentation_Produits_Frais.pdf`](../livrables/Presentation_Produits_Frais.pdf).
+
+Le dashboard suit le modèle du cours : fond blanc, 5 KPI avec évolution vs N-1, courbe, top 5 produits, tableau par catégorie ; 3 pages (Synthèse, Pertes & remises, Instructions). Les définitions sont centralisées sur la page *Instructions*.
 
 ![Aperçu du dashboard](../figures/dashboard_apercu.png)
 
