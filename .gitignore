@@ -1,0 +1,16 @@
+# Données volumineuses : à placer à la main dans data/raw (voir README)
+data/raw/transaction.csv
+data/silver/
+data/gold/fact_ventes_transaction.csv
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS / éditeur
+.DS_Store
+.idea/
+.vscode/
