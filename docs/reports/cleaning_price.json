@@ -1,0 +1,31 @@
+{
+  "table": "price",
+  "lignes_entree": 55982,
+  "lignes_sortie": 55982,
+  "regles": [
+    {
+      "regle": "dates invalides",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée si non parsable",
+      "justification_metier": "une date illisible ne peut pas être rattachée à une période de comparaison (N vs N-1)"
+    },
+    {
+      "regle": "prix manquant ou <= 0",
+      "lignes_concernees": 0,
+      "action": "ligne supprimée",
+      "justification_metier": "un coût d'achat nul ou négatif fausserait la marge ; on préfère ne pas calculer de marge"
+    },
+    {
+      "regle": "doublons (date, item_code)",
+      "lignes_concernees": 0,
+      "action": "moyenne des prix du jour",
+      "justification_metier": "un seul prix de gros par article et par jour (clé de jointure unique)"
+    },
+    {
+      "regle": "prix de gros aberrants (IQR x3.0 par article)",
+      "lignes_concernees": 404,
+      "action": "flag is_price_outlier + prix corrigé (médiane de l'article)",
+      "justification_metier": "un coût d'achat aberrant (0,01 ou 141 RMB/kg) ferait exploser ou s'effondrer la marge"
+    }
+  ]
+}

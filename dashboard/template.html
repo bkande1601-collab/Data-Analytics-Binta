@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Analyse Ventes Produits Frais</title>
+<style>
+:root{--blue:#1a5fb4;--ink:#1f2933;--muted:#6b7280;--line:#d9dee5;--red:#d93025;--green:#188038;--orange:#f29b4b;--grey:#aab2bd}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink);font:14px/1.4 Arial,Helvetica,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:0 0 28px}
+header{background:var(--blue);color:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+header h1{font-size:24px;line-height:1.15;margin:0;flex:1 1 220px}
+header select{flex:1 1 150px;max-width:260px;padding:10px 12px;font-size:14px;border:2px solid #d5dbe3;border-radius:4px;background:#fff;color:var(--ink)}
+nav{display:flex;gap:4px;padding:10px 20px 0;border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;padding:8px 16px;font-size:14px;cursor:pointer;color:var(--muted);border-bottom:3px solid transparent}
+nav button.on{color:var(--blue);border-color:var(--blue);font-weight:700}
+.page{display:none;padding:18px 20px 0}.page.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:18px}
+.kpi{border:2px solid var(--line);border-radius:4px;text-align:center;padding:12px 6px}
+.kpi .l{font-size:15px}.kpi .v{font-size:30px;font-weight:700;margin:2px 0}.kpi .d{font-size:14px}
+.pos{color:var(--green)}.neg{color:var(--red)}
+.row{display:grid;grid-template-columns:1.05fr 1fr;gap:18px;margin-bottom:18px}
+h2{font-size:16px;text-align:center;margin:0 0 8px;text-transform:uppercase}
+.box{border:2px solid var(--line);border-radius:4px;padding:10px}
+.chart{position:relative;height:270px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--blue);color:#fff;font-weight:700;padding:9px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+td{padding:8px;border-bottom:1px solid #444;text-align:right}
+td:first-child{white-space:normal}
+.scroll{overflow-x:auto}
+.instr h3{margin:18px 0 4px;font-size:16px}.instr p,.instr li{max-width:880px}
+.instr table{max-width:880px}.instr td,.instr th{text-align:left}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Analyse Ventes des Produits Frais</h1>
+  <select id="fCat"></select>
+  <select id="fItem"></select>
+  <select id="fMonth"></select>
+</header>
+<nav id="nav"><button data-p="p1" class="on">Synthèse</button><button data-p="p2">Pertes &amp; remises</button><button data-p="p3">Instructions</button></nav>
+
+<section class="page on" id="p1">
+  <div class="kpis" id="kpis"></div>
+  <div class="row">
+    <div class="box"><h2>Évolution CA net vs CA promo</h2><div class="chart"><canvas id="cLine"></canvas></div></div>
+    <div class="box"><h2>Top 5 produits / CA</h2><div class="scroll"><table id="tTop"></table></div></div>
+  </div>
+  <div class="box scroll"><table id="tCat"></table></div>
+</section>
+
+<section class="page" id="p2">
+  <div class="row">
+    <div class="box"><h2>Marge après pertes (% CA)</h2><div class="chart"><canvas id="cMal"></canvas></div></div>
+    <div class="box"><h2>Top 10 produits / coût des pertes</h2><div class="chart"><canvas id="cLoss"></canvas></div></div>
+  </div>
+  <div class="row">
+    <div class="box"><h2>Marge : avec vs sans remise</h2><div class="chart" style="height:230px"><canvas id="cPromo"></canvas></div></div>
+    <div class="box"><h2>Taux de perte par catégorie</h2><div class="chart" style="height:230px"><canvas id="cRate"></canvas></div></div>
+  </div>
+</section>
+
+<section class="page instr" id="p3">
+  <h3>Périmètre</h3>
+  <p>Ventes de 251 légumes frais (6 catégories). N = 12 derniers mois (juil. 2022 – juin 2023) ; N-1 = 12 mois précédents. Les filtres s'appliquent aux deux périodes. Montants en RMB.</p>
+  <h3>Indicateurs</h3>
+  <table>
+    <tr><th>Indicateur</th><th>Calcul</th></tr>
+    <tr><td>CA net</td><td>Quantité × prix de vente, retours déduits</td></tr>
+    <tr><td>Volume</td><td>Kilos vendus, hors retours</td></tr>
+    <tr><td>Marge brute</td><td>CA net − coût d'achat (prix de gros du jour)</td></tr>
+    <tr><td>Taux de perte</td><td>Pertes ÷ achats, pondéré par les volumes achetés</td></tr>
+    <tr><td>Marge après pertes</td><td>CA net − coût d'achat ÷ (1 − taux de perte)</td></tr>
+    <tr><td>% CA promo</td><td>Part du CA réalisée avec remise</td></tr>
+    <tr><td>% Évol / Écart</td><td>N vs N-1, en % et en valeur</td></tr>
+  </table>
+  <h3>Précisions</h3>
+  <ul>
+    <li>Le taux de perte est fixe par article (pas d'historique) : la marge après pertes est une estimation.</li>
+    <li>Les prix de gros aberrants sont remplacés par la médiane de l'article (voir README).</li>
+    <li>Sources : transaction, product, price, loss_rate ; nettoyage et modèle décrits dans le dépôt.</li>
+  </ul>
+</section>
+</div>
+
+<script>/*__CHARTJS__*/</script>
+<script>
+const DATA = /*__DATA__*/null;
+const fmt=(x,d=0)=>x.toLocaleString("fr-FR",{maximumFractionDigits:d,minimumFractionDigits:d});
+const k=(x,u="")=>Math.abs(x)>=1e6?fmt(x/1e6,2)+" M"+u:Math.abs(x)>=1000?fmt(x/1000,1)+"k"+u:fmt(x,0)+u;
+const pc=(x,d=1)=>isFinite(x)?fmt(x*100,d)+" %":"–";
+const sp=(x,d=1)=>isFinite(x)?(x>0?"+":"")+fmt(x*100,d)+" %":"–";
+const ev=(a,b)=>b?a/b-1:NaN;
+const cls=x=>x>0?"pos":x<0?"neg":"";
+const arrow=x=>x>0?"▲":x<0?"▼":"";
+const S={cat:"all",item:"all",month:"all"};
+const KEYS=["ca","ca_promo","mb_promo","mal_promo","vol","mb","mal","lc","cp"];
+function sum(rows){const o={};KEYS.forEach(q=>o[q]=0);rows.forEach(r=>KEYS.forEach(q=>o[q]+=r[q]||0));return o}
+const okMonth=r=>S.month==="all"||String(r.m)===S.month;
+const okItem=r=>S.item==="all"||r.item===S.item;
+const okCat=r=>S.cat==="all"||String(r.c)===S.cat;
+const sel=()=>DATA.rows.filter(r=>okCat(r)&&okItem(r)&&okMonth(r));
+const P=(rows,p)=>sum(rows.filter(r=>r.p===p));
+const rate=a=>a.lc/(a.cp+a.lc);
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+/* filtres */
+const fCat=document.getElementById("fCat"),fItem=document.getElementById("fItem"),fMonth=document.getElementById("fMonth");
+fCat.innerHTML='<option value="all">Catégorie</option>'+DATA.categories.map((c,i)=>`<option value="${i}">${c}</option>`).join("");
+fMonth.innerHTML='<option value="all">Mois : 12 mois</option>'+DATA.months.map((m,i)=>`<option value="${i+1}">${m}</option>`).join("");
+function fillItems(){
+  const items=[...new Set(DATA.rows.filter(okCat).map(r=>r.item))].sort();
+  fItem.innerHTML='<option value="all">Produit</option>'+items.map(i=>`<option>${i}</option>`).join("");
+  if(S.item!=="all"&&!items.includes(S.item))S.item="all";fItem.value=S.item;
+}
+fCat.onchange=e=>{S.cat=e.target.value;fillItems();render()};
+fItem.onchange=e=>{S.item=e.target.value;render()};
+fMonth.onchange=e=>{S.month=e.target.value;render()};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("nav button,.page").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");document.getElementById(b.dataset.p).classList.add("on");render();});
+
+/* helpers graphiques */
+const charts={};
+function mk(id,cfg){if(charts[id])charts[id].destroy();cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:false},cfg.options);charts[id]=new Chart(document.getElementById(id),cfg)}
+const axis=(cb)=>({ticks:Object.assign({color:"#444"},cb?{callback:cb}:{}),grid:{color:"#e6e9ee"}});
+
+function kpi(l,v,d,dc,raw=dc){return `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d ${cls(dc)}">${arrow(raw)} ${d}</div></div>`}
+function renderKPIs(){
+  const R=sel(),n=P(R,"N"),n1=P(R,"N-1");
+  const eCA=ev(n.ca,n1.ca),eV=ev(n.vol,n1.vol),eM=ev(n.mb,n1.mb);
+  const mal=n.mal/n.ca,mal1=n1.mal/n1.ca,pr=n.ca_promo/n.ca,pr1=n1.ca_promo/n1.ca;
+  document.getElementById("kpis").innerHTML=
+   kpi("CA net",k(n.ca," RMB"),sp(eCA)+" vs N-1",eCA)+kpi("Volume",k(n.vol," kg"),sp(eV)+" vs N-1",eV)+
+   kpi("Marge brute",k(n.mb," RMB"),sp(eM)+" vs N-1",eM)+
+   kpi("Marge après pertes",pc(mal),(mal>=mal1?"+":"")+fmt((mal-mal1)*100,1)+" pt vs N-1",mal-mal1)+
+   kpi("% CA promo",pc(pr),(pr>=pr1?"+":"")+fmt((pr-pr1)*100,1)+" pt vs N-1",-(pr-pr1),pr-pr1);
+}
+function renderLine(){
+  const R=sel(),m=(p,key)=>DATA.months.map((_,i)=>sum(R.filter(r=>r.p===p&&r.m===i+1))[key]);
+  const lab=v=>k(v);
+  mk("cLine",{type:"line",data:{labels:DATA.months,datasets:[
+    {label:"CA net N",data:m("N","ca"),borderColor:"#4285f4",backgroundColor:"#4285f4",tension:.3,pointRadius:3},
+    {label:"CA net N-1",data:m("N-1","ca"),borderColor:css("--grey"),backgroundColor:css("--grey"),tension:.3,pointRadius:3},
+    {label:"CA promo N",data:m("N","ca_promo"),borderColor:css("--orange"),backgroundColor:css("--orange"),tension:.3,pointRadius:3}]},
+   options:{plugins:{legend:{position:"top",labels:{boxWidth:14}},tooltip:{callbacks:{label:c=>c.dataset.label+" : "+k(c.raw," RMB")}}},scales:{x:axis(),y:axis(v=>k(v))}}});
+}
+function renderTop(){
+  const R=sel().filter(r=>r.p==="N"),by={};
+  R.forEach(r=>{(by[r.item]=by[r.item]||{c:r.c,ca:0,mb:0,pr:0,lc:0,cp:0});const o=by[r.item];o.ca+=r.ca;o.mb+=r.mb;o.pr+=r.ca_promo;o.lc+=r.lc;o.cp+=r.cp});
+  const top=Object.entries(by).sort((a,b)=>b[1].ca-a[1].ca).slice(0,5);
+  document.getElementById("tTop").innerHTML=`<tr><th>Produit</th><th>CA N</th><th>Marge</th><th>Part promo</th></tr>`+
+   top.map(([n,o])=>`<tr><td>${DATA.categories[o.c]} – ${n}</td><td>${k(o.ca)}</td><td>${k(o.mb)}</td><td>${pc(o.pr/o.ca)}</td></tr>`).join("");
+}
+function catRows(filterCat){
+  return DATA.categories.map((name,i)=>{
+    const R=DATA.rows.filter(r=>r.c===i&&okItem(r)&&okMonth(r)),n=P(R,"N"),n1=P(R,"N-1");
+    return {i,name,n,n1,eCA:ev(n.ca,n1.ca),eV:ev(n.vol,n1.vol),eM:ev(n.mb,n1.mb),mal:n.mal/n.ca,mal1:n1.mal/n1.ca,loss:rate(n),promo:n.ca_promo/n.ca,
+      pm:(n.ca_promo?0:0)};
+  }).filter(c=>filterCat?(S.cat==="all"||String(c.i)===S.cat):true).filter(c=>c.n.ca||c.n1.ca);
+}
+function renderCatTable(){
+  const rows=catRows(true).sort((a,b)=>b.n.ca-a.n.ca);
+  const c=(v,t)=>`<td class="${cls(v)}">${t}</td>`;
+  document.getElementById("tCat").innerHTML=`<tr><th>Catégorie</th><th>CA net</th><th>% Évol CA</th><th>Écart CA</th><th>Volume</th><th>% Évol Volume</th><th>Marge</th><th>% Évol Marge</th><th>Taux de perte</th><th>Marge après pertes</th></tr>`+
+   rows.map(r=>`<tr><td>${r.name}</td><td>${k(r.n.ca)}</td>${c(r.eCA,sp(r.eCA))}${c(r.n.ca-r.n1.ca,k(r.n.ca-r.n1.ca))}<td>${k(r.n.vol)}</td>${c(r.eV,sp(r.eV))}<td>${k(r.n.mb)}</td>${c(r.eM,sp(r.eM))}<td>${pc(r.loss)}</td>${c(r.mal-r.mal1,pc(r.mal))}</tr>`).join("");
+}
+function renderP2(){
+  const rows=catRows(false).sort((a,b)=>a.mal-b.mal);
+  const hl=(i)=>S.cat==="all"||String(i)===S.cat;
+  mk("cMal",{type:"bar",data:{labels:rows.map(r=>r.name),datasets:[
+    {label:"N-1",data:rows.map(r=>r.mal1),backgroundColor:rows.map(r=>hl(r.i)?css("--grey"):"#e3e6ea")},
+    {label:"N",data:rows.map(r=>r.mal),backgroundColor:rows.map(r=>hl(r.i)?"#4285f4":"#cfe0fb")}]},
+   options:{indexAxis:"y",plugins:{legend:{position:"top",labels:{boxWidth:14}},tooltip:{callbacks:{label:c=>c.dataset.label+" : "+pc(c.raw)}}},scales:{x:axis(v=>fmt(v*100)+" %"),y:axis()}}});
+  const rr=rows.slice().sort((a,b)=>b.loss-a.loss);
+  mk("cRate",{type:"bar",data:{labels:rr.map(r=>r.name),datasets:[{data:rr.map(r=>r.loss),backgroundColor:rr.map(r=>hl(r.i)?"#4285f4":"#cfe0fb")}]},
+   options:{indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>pc(c.raw)}}},scales:{x:axis(v=>fmt(v*100)+" %"),y:axis()}}});
+  const by={};sel().filter(r=>r.p==="N").forEach(r=>by[r.item]=(by[r.item]||0)+r.lc);
+  const top=Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  mk("cLoss",{type:"bar",data:{labels:top.map(t=>t[0]),datasets:[{data:top.map(t=>t[1]),backgroundColor:css("--red")}]},
+   options:{indexAxis:"y",plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>k(c.raw," RMB")+" · perte "+fmt(DATA.loss_pct[top[c.dataIndex][0]],1)+" %"}}},scales:{x:axis(v=>k(v)),y:axis()}}});
+  const t=P(sel(),"N"),pr={ca:t.ca_promo,mb:t.mb_promo,mal:t.mal_promo};
+  const np={ca:t.ca-pr.ca,mb:t.mb-pr.mb,mal:t.mal-pr.mal};
+  mk("cPromo",{type:"bar",data:{labels:["Sans remise","Avec remise"],datasets:[
+    {label:"Marge brute",data:[np.mb/np.ca,pr.mb/pr.ca],backgroundColor:"#4285f4"},
+    {label:"Marge après pertes",data:[np.mal/np.ca,pr.mal/pr.ca],backgroundColor:css("--orange")}]},
+   options:{plugins:{legend:{position:"top",labels:{boxWidth:14}},tooltip:{callbacks:{label:c=>c.dataset.label+" : "+pc(c.raw)}}},scales:{x:axis(),y:axis(v=>fmt(v*100)+" %")}}});
+}
+function render(){renderKPIs();renderLine();renderTop();renderCatTable();
+  if(document.getElementById("p2").classList.contains("on"))renderP2();}
+fillItems();render();
+</script>
+</body>
+</html>
