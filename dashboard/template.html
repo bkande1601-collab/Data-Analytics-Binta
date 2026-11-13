@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Produits frais – Dashboard Comex</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --ink:#1c2430; --muted:#667085; --line:#e4e7ec;
+  --blue:#1f6feb; --grey:#b6bdc9; --red:#d92d20; --green:#12926b; --amber:#e8a317;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#0f141b; --card:#171e28; --ink:#e8ecf2; --muted:#98a2b3; --line:#2a3443;
+         --blue:#5b9bff; --grey:#5c6677; --red:#ff6b5e; --green:#3fd3a2; --amber:#f2b84b; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1280px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
+h1{font-size:22px;margin:0}
+.sub{color:var(--muted);margin-top:2px}
+.filters{display:flex;gap:10px;flex-wrap:wrap}
+.filters label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font-size:13px}
+.signal{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--red);border-radius:10px;padding:12px 16px;margin-bottom:14px}
+.signal b{font-size:15px}
+.signal ul{margin:6px 0 0 18px;padding:0}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:24px;font-weight:700;margin:2px 0}
+.kpi .d{font-size:12px;font-weight:600}
+.pos{color:var(--green)} .neg{color:var(--red)} .neu{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+.card h2{font-size:14px;margin:0 0 2px}
+.card .q{font-size:12px;color:var(--muted);margin-bottom:8px}
+.chart{position:relative;height:280px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+tr.dim{opacity:.35}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}
+.b-red{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
+.b-amber{background:color-mix(in srgb,var(--amber) 22%,transparent);color:var(--amber)}
+.b-green{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)}
+.reco ol{margin:6px 0 0 18px;padding:0}
+.reco li{margin-bottom:6px}
+.scroll{overflow-x:auto}
+footer{color:var(--muted);font-size:12px;margin-top:14px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Produits frais – où la performance se bloque-t-elle ?</h1>
+      <div class="sub">12 derniers mois (<span id="pN"></span>) vs N-1 (<span id="pN1"></span>) · montants en RMB</div>
+    </div>
+    <div class="filters">
+      <label>Catégorie
+        <select id="fCat"></select></label>
+      <label>Remise
+        <select id="fDisc"><option value="all">Toutes ventes</option><option value="0">Sans remise</option><option value="1">Avec remise</option></select></label>
+    </div>
+  </header>
+
+  <section class="signal" id="signal"></section>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="grid">
+    <div class="card"><h2>Quelles catégories reculent ?</h2><div class="q">Évolution du CA net vs N-1, par catégorie</div><div class="chart"><canvas id="cEvol"></canvas></div></div>
+    <div class="card"><h2>Que reste-t-il une fois les pertes payées ?</h2><div class="q">Marge après pertes, en % du CA : N-1 vs N</div><div class="chart"><canvas id="cMargin"></canvas></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Quand vend-on moins qu'avant ?</h2><div class="q">CA net mensuel, N vs N-1 (selon filtres)</div><div class="chart"><canvas id="cMonth"></canvas></div></div>
+    <div class="card"><h2>Où part l'argent perdu ?</h2><div class="q">10 produits au plus fort coût de pertes (RMB, N)</div><div class="chart"><canvas id="cLoss"></canvas></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>Les promotions protègent-elles la marge ?</h2><div class="q">Marge brute et marge après pertes (% du CA, N) avec et sans remise</div><div class="chart" style="height:220px"><canvas id="cDisc"></canvas></div></div>
+    <div class="card reco"><h2>Recommandations pour le Directeur</h2><div class="q">Calculées sur les données N vs N-1 (filtre remise appliqué)</div><ol id="reco"></ol></div>
+  </div>
+  <div class="card"><h2>Tableau de bord par catégorie</h2><div class="q">Feu rouge = CA en baisse ou marge après pertes sous 25 % ; orange = marge en recul ou perte &gt; 10 %</div><div class="scroll"><table id="tbl"></table></div></div>
+  <footer>Sources : transaction, product, price, loss_rate (modèle en étoile GOLD) · CA net = ventes − retours · Marge après pertes = CA − (coût d'achat ÷ (1 − taux de perte)).</footer>
+</div>
+
+<script>/*__CHARTJS__*/</script>
+<script>
+const DATA = /*__DATA__*/null;
+const fmt = (x,d=0)=>x.toLocaleString("fr-FR",{maximumFractionDigits:d,minimumFractionDigits:d});
+const pct = (x,d=1)=>(isFinite(x)?fmt(x*100,d)+" %":"–");
+const pt = x=>(x>0?"+":"")+fmt(x*100,1)+" pt";
+const sgn = (x,d=1)=>(x>0?"+":"")+fmt(x*100,d)+" %";
+const css = n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const state = {cat:"all", disc:"all"};
+let charts = {};
+
+document.getElementById("pN").textContent = DATA.period_labels["N"];
+document.getElementById("pN1").textContent = DATA.period_labels["N-1"];
+const selCat = document.getElementById("fCat");
+selCat.innerHTML = '<option value="all">Toutes catégories</option>' + DATA.categories.map((c,i)=>`<option value="${i}">${c}</option>`).join("");
+selCat.onchange = e=>{state.cat=e.target.value;render()};
+document.getElementById("fDisc").onchange = e=>{state.disc=e.target.value;render()};
+
+const okDisc = r=> state.disc==="all" || String(r.d)===state.disc;
+const okCat = r=> state.cat==="all" || String(r.c)===state.cat;
+
+function sum(rows, keys){ const o={}; keys.forEach(k=>o[k]=0); rows.forEach(r=>keys.forEach(k=>o[k]+=r[k]||0)); return o; }
+const KEYS = ["revenue_net","quantity_sold_kg","gross_margin","margin_after_loss","loss_cost","cost_purchase"];
+function agg(rows,p){ return sum(rows.filter(r=>r.p===p),KEYS); }
+const lossRate = a => a.loss_cost/(a.cost_purchase+a.loss_cost);
+const evo = (n,n1)=> n1? n/n1-1 : NaN;
+
+function catStats(){
+  return DATA.categories.map((name,i)=>{
+    const rows = DATA.monthly.filter(r=>r.c===i && okDisc(r));
+    const n=agg(rows,"N"), n1=agg(rows,"N-1");
+    const promoRows = DATA.monthly.filter(r=>r.c===i && r.d===1);
+    const allN = agg(DATA.monthly.filter(r=>r.c===i),"N");
+    return {i,name,n,n1,
+      evoCA:evo(n.revenue_net,n1.revenue_net), evoVol:evo(n.quantity_sold_kg,n1.quantity_sold_kg),
+      mb:n.gross_margin/n.revenue_net, mb1:n1.gross_margin/n1.revenue_net,
+      mal:n.margin_after_loss/n.revenue_net, mal1:n1.margin_after_loss/n1.revenue_net,
+      loss:lossRate(n), promoShare: agg(promoRows,"N").revenue_net/allN.revenue_net};
+  });
+}
+function status(c){
+  if(c.evoCA<0 || c.mal<0.25) return ["b-red","À traiter"];
+  if(c.mal<c.mal1 || c.loss>0.10) return ["b-amber","À surveiller"];
+  return ["b-green","OK"];
+}
+
+function kpiCard(label,value,delta,cls){return `<div class="kpi"><div class="l">${label}</div><div class="v">${value}</div><div class="d ${cls}">${delta}</div></div>`}
+function renderKPIs(){
+  const rows = DATA.monthly.filter(r=>okCat(r)&&okDisc(r));
+  const n=agg(rows,"N"), n1=agg(rows,"N-1");
+  const cls = x=> x>0?"pos":(x<0?"neg":"neu");
+  const dCA=n.revenue_net-n1.revenue_net, eCA=evo(n.revenue_net,n1.revenue_net);
+  const mb=n.gross_margin/n.revenue_net, mb1=n1.gross_margin/n1.revenue_net;
+  const mal=n.margin_after_loss/n.revenue_net, mal1=n1.margin_after_loss/n1.revenue_net;
+  const eVol=evo(n.quantity_sold_kg,n1.quantity_sold_kg);
+  const L=lossRate(n), L1=lossRate(n1);
+  document.getElementById("kpis").innerHTML =
+    kpiCard("CA net",fmt(n.revenue_net)+" RMB",`${sgn(eCA)} vs N-1 (${dCA>0?"+":""}${fmt(dCA)} RMB)`,cls(eCA))+
+    kpiCard("Marge brute",fmt(n.gross_margin)+" RMB",`${pct(mb)} du CA · ${pt(mb-mb1)} vs N-1`,cls(mb-mb1))+
+    kpiCard("Volume vendu",fmt(n.quantity_sold_kg)+" kg",`${sgn(eVol)} vs N-1`,cls(eVol))+
+    kpiCard("Marge après pertes",pct(mal),`${pt(mal-mal1)} vs N-1`,cls(mal-mal1))+
+    kpiCard("Taux de perte (pondéré)",pct(L),`${pt(L-L1)} vs N-1`,cls(-(L-L1)));
+}
+
+function mkChart(id,cfg){ if(charts[id]) charts[id].destroy(); charts[id]=new Chart(document.getElementById(id),cfg); }
+const baseOpts = ()=>({responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{labels:{color:css("--ink"),boxWidth:12}}},
+  scales:{x:{ticks:{color:css("--muted")},grid:{color:css("--line")}},y:{ticks:{color:css("--muted")},grid:{color:css("--line")}}}});
+
+function renderCharts(cs){
+  const selected = c=> state.cat==="all" || String(c.i)===state.cat;
+  const sorted=[...cs].sort((a,b)=>a.evoCA-b.evoCA);
+  let o=baseOpts(); o.indexAxis="y"; o.plugins.legend.display=false;
+  o.scales.x.ticks.callback=v=>fmt(v*100)+" %";
+  o.plugins.tooltip={callbacks:{label:c=>sgn(c.raw)}};
+  mkChart("cEvol",{type:"bar",data:{labels:sorted.map(c=>c.name),datasets:[{data:sorted.map(c=>c.evoCA),
+    backgroundColor:sorted.map(c=>(c.evoCA<0?css("--red"):css("--blue"))+(selected(c)?"":"55"))}]},options:o});
+
+  const s2=[...cs].sort((a,b)=>a.mal-b.mal);
+  o=baseOpts(); o.indexAxis="y"; o.scales.x.ticks.callback=v=>fmt(v*100)+" %";
+  o.plugins.tooltip={callbacks:{label:c=>c.dataset.label+" : "+pct(c.raw)}};
+  mkChart("cMargin",{type:"bar",data:{labels:s2.map(c=>c.name),datasets:[
+    {label:"N-1",data:s2.map(c=>c.mal1),backgroundColor:css("--grey")},
+    {label:"N",data:s2.map(c=>c.mal),backgroundColor:css("--blue")}]},options:o});
+
+  const mRows=DATA.monthly.filter(r=>okCat(r)&&okDisc(r));
+  const series=p=>DATA.months.map((_,k)=>sum(mRows.filter(r=>r.p===p&&r.m===k+1),["revenue_net"]).revenue_net);
+  o=baseOpts(); o.scales.y.ticks.callback=v=>fmt(v/1000)+" k";
+  o.plugins.tooltip={callbacks:{label:c=>c.dataset.label+" : "+fmt(c.raw)+" RMB"}};
+  mkChart("cMonth",{type:"line",data:{labels:DATA.months,datasets:[
+    {label:"N-1",data:series("N-1"),borderColor:css("--grey"),backgroundColor:css("--grey"),tension:.25,pointRadius:3},
+    {label:"N",data:series("N"),borderColor:css("--blue"),backgroundColor:css("--blue"),tension:.25,pointRadius:3}]},options:o});
+
+  const pr={}; DATA.products.filter(r=>r.p==="N"&&okCat(r)&&okDisc(r)).forEach(r=>{
+    pr[r.item_label]=pr[r.item_label]||{lc:0,loss:r.loss_pct}; pr[r.item_label].lc+=r.loss_cost;});
+  const top=Object.entries(pr).sort((a,b)=>b[1].lc-a[1].lc).slice(0,10);
+  o=baseOpts(); o.indexAxis="y"; o.plugins.legend.display=false;
+  o.plugins.tooltip={callbacks:{label:c=>fmt(c.raw)+" RMB · taux de perte "+fmt(top[c.dataIndex][1].loss,1)+" %"}};
+  mkChart("cLoss",{type:"bar",data:{labels:top.map(t=>t[0]),datasets:[{data:top.map(t=>t[1].lc),backgroundColor:css("--red")}]},options:o});
+
+  const grp=d=>{const a=agg(DATA.monthly.filter(r=>okCat(r)&&r.d===d),"N");return a};
+  const A0=grp(0),A1=grp(1);
+  o=baseOpts(); o.scales.y.ticks.callback=v=>fmt(v*100)+" %";
+  o.plugins.tooltip={callbacks:{label:c=>c.dataset.label+" : "+pct(c.raw)}};
+  mkChart("cDisc",{type:"bar",data:{labels:["Sans remise","Avec remise"],datasets:[
+    {label:"Marge brute",data:[A0.gross_margin/A0.revenue_net,A1.gross_margin/A1.revenue_net],backgroundColor:css("--blue")},
+    {label:"Marge après pertes",data:[A0.margin_after_loss/A0.revenue_net,A1.margin_after_loss/A1.revenue_net],backgroundColor:css("--amber")}]},options:o});
+}
+
+function renderTable(cs){
+  const arrow=x=>x>0?"▲":(x<0?"▼":"–");
+  let h=`<tr><th>Catégorie</th><th>CA net N</th><th>Évol. CA</th><th>Évol. volume</th><th>Marge brute</th><th>Taux de perte</th><th>Marge après pertes</th><th>Poids promo (CA)</th><th>Statut</th></tr>`;
+  cs.sort((a,b)=>b.n.revenue_net-a.n.revenue_net).forEach(c=>{
+    const [bc,bt]=status(c);
+    const dim = state.cat!=="all" && String(c.i)!==state.cat ? ' class="dim"':"";
+    h+=`<tr${dim}><td>${c.name}</td><td>${fmt(c.n.revenue_net)}</td>
+      <td class="${c.evoCA<0?"neg":"pos"}">${arrow(c.evoCA)} ${sgn(c.evoCA)}</td>
+      <td class="${c.evoVol<0?"neg":"pos"}">${sgn(c.evoVol)}</td>
+      <td>${pct(c.mb)}</td><td>${pct(c.loss)}</td>
+      <td class="${c.mal<c.mal1?"neg":"pos"}">${pct(c.mal)}</td>
+      <td>${pct(c.promoShare)}</td><td><span class="badge ${bc}">${bt}</span></td></tr>`;});
+  document.getElementById("tbl").innerHTML=h;
+}
+
+function renderSignal(cs){
+  const byEvo=[...cs].sort((a,b)=>a.evoCA-b.evoCA), byMal=[...cs].sort((a,b)=>a.mal-b.mal);
+  const byLoss=[...cs].sort((a,b)=>b.loss-a.loss);
+  const all=agg(DATA.monthly.filter(okDisc),"N"), all1=agg(DATA.monthly.filter(okDisc),"N-1");
+  const down=cs.filter(c=>c.evoCA<0).map(c=>`${c.name} (${sgn(c.evoCA)})`);
+  document.getElementById("signal").innerHTML =
+   `<b>Le signal en 3 secondes :</b> le CA global progresse (${sgn(evo(all.revenue_net,all1.revenue_net))}), mais il masque 4 points de blocage.<ul>
+   <li><b>Volume :</b> ${down.length?down.join(", ")+" recule(nt)":"aucune catégorie ne recule"} alors que le total progresse.</li>
+   <li><b>Pertes :</b> « ${byLoss[0].name} » a le plus fort taux de perte (${pct(byLoss[0].loss)} des achats)${byLoss[0].i===byMal[0].i?` et la marge après pertes la plus faible (${pct(byMal[0].mal)} du CA)`:` ; la marge après pertes la plus faible est celle de « ${byMal[0].name} » (${pct(byMal[0].mal)} du CA)`}.</li>
+   <li><b>Prix :</b> le volume progresse de ${sgn(evo(all.quantity_sold_kg,all1.quantity_sold_kg))} mais le CA de ${sgn(evo(all.revenue_net,all1.revenue_net))} : le prix moyen au kg baisse de ${fmt(-(( all.revenue_net/all.quantity_sold_kg)/(all1.revenue_net/all1.quantity_sold_kg)-1)*100,0)} % (${fmt(all1.revenue_net/all1.quantity_sold_kg,2)} → ${fmt(all.revenue_net/all.quantity_sold_kg,2)} RMB/kg).</li>
+   <li><b>Promotions :</b> la marge brute tombe à ${pct(promoMargin())} sur les ventes remisées contre ${pct(promoMargin(0))} sans remise.</li></ul>`;
+}
+function promoMargin(d=1){const a=agg(DATA.monthly.filter(r=>r.d===d),"N");return a.gross_margin/a.revenue_net}
+
+function renderReco(cs){
+  const byMal=[...cs].sort((a,b)=>a.mal-b.mal), byLoss=[...cs].sort((a,b)=>b.loss-a.loss);
+  const worstEvo=[...cs].sort((a,b)=>a.evoCA-b.evoCA)[0];
+  const lc=agg(DATA.monthly.filter(okDisc),"N").loss_cost;
+  document.getElementById("reco").innerHTML=
+   `<li><b>Réduire les pertes sur « ${byLoss[0].name} »</b> (${pct(byLoss[0].loss)} de perte) : ajuster les commandes et la rotation. 1 point de perte en moins ≈ ${fmt(agg(DATA.monthly.filter(r=>r.c===byLoss[0].i&&okDisc(r)),"N").cost_purchase*0.01/Math.pow(1-byLoss[0].loss,2))} RMB de marge sur 12 mois.</li>
+    <li><b>Relancer « ${worstEvo.name} »</b> (CA ${sgn(worstEvo.evoCA)}, volume ${sgn(worstEvo.evoVol)}) : vérifier disponibilité, prix et mise en avant avant de couper la gamme.</li>
+    <li><b>Encadrer les remises</b> : sur les ventes remisées, la marge après pertes est de ${pct(promoNet())} contre ${pct(promoNet(0))} sans remise ; ne remiser que les produits à forte perte (écoulement) et plafonner le taux de remise.</li>
+    <li><b>Surveiller « ${byMal[0].name} »</b> : marge après pertes de ${pct(byMal[0].mal)}, la plus faible des catégories. Total des pertes subies : ${fmt(lc)} RMB sur 12 mois.</li>`;
+}
+function promoNet(d=1){const a=agg(DATA.monthly.filter(r=>r.d===d),"N");return a.margin_after_loss/a.revenue_net}
+
+function render(){
+  const cs=catStats();
+  renderSignal(cs); renderKPIs(); renderCharts(cs); renderTable([...cs]); renderReco(cs);
+}
+render();
+</script>
+</body>
+</html>
