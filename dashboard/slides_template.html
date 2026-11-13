@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8"><title>Produits frais – Présentation</title>
+<style>
+@page{size:960px 540px;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff;color:#1f2933;font:16px/1.45 Arial,Helvetica,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.slide{width:960px;height:540px;position:relative;padding:34px 48px;page-break-after:always;overflow:hidden;background:#fff}
+.slide:last-child{page-break-after:auto}
+h1{font-size:34px;font-weight:400;margin:0 0 18px}
+h1 b{font-weight:700}
+.txt{position:absolute;left:48px;right:48px;bottom:34px;font-size:17px}
+.txt b{font-weight:700}
+.cover{display:flex;flex-direction:column;justify-content:center;background:#1a5fb4;color:#fff}
+.cover h1{font-size:44px;font-weight:700;line-height:1.15;max-width:800px}
+.cover p{font-size:20px;margin:10px 0 0;opacity:.9}
+.kpi{border:2px solid #d9dee5;border-radius:4px;text-align:center;padding:10px 4px;margin-bottom:12px;background:#fff}
+.kpi .l{font-size:15px}.kpi .v{font-size:32px;font-weight:700;line-height:1.15}.kpi .d{font-size:14px}
+.pos{color:#188038}.neg{color:#d93025}
+.cols{display:flex;gap:22px}
+.box{border:2px solid #d9dee5;border-radius:4px;padding:8px;background:#fff}
+.ttl{text-align:center;font-weight:700;font-size:14px;text-transform:uppercase;margin:0 0 4px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:#1a5fb4;color:#fff;padding:8px 6px;text-align:right}th:first-child,td:first-child{text-align:left}
+td{padding:9px 6px;border-bottom:1px solid #555;text-align:right}
+.hl{position:absolute;border:3px dashed #f4c542;pointer-events:none}
+.ann{position:absolute;color:#d93025;font-weight:700;font-size:22px;text-align:center;line-height:1.1}
+.concl li{margin-bottom:14px;font-size:19px}.concl b{color:#1a5fb4}
+</style></head>
+<body>
+<div class="slide cover"><h1>Qu'est-ce qui bloque la performance des produits frais ?</h1><p>Analyse des ventes, 12 derniers mois (juil. 2022 – juin 2023) vs N-1</p></div>
+<div class="slide" id="s2"></div>
+<div class="slide" id="s3"></div>
+<div class="slide" id="s4"></div>
+<div class="slide" id="s5"></div>
+<div class="slide" id="s6"></div>
+<script>/*__CHARTJS__*/</script>
+<script>
+const DATA=/*__DATA__*/null;
+Chart.defaults.animation=false;Chart.defaults.font.size=12;
+const fmt=(x,d=0)=>x.toLocaleString("fr-FR",{maximumFractionDigits:d,minimumFractionDigits:d});
+const k=x=>Math.abs(x)>=1e6?fmt(x/1e6,2)+" M":Math.abs(x)>=1000?fmt(x/1000,1)+"k":fmt(x);
+const pc=(x,d=1)=>fmt(x*100,d)+" %",sp=(x,d=1)=>(x>0?"+":"")+fmt(x*100,d)+" %",cl=x=>x>0?"pos":x<0?"neg":"",ar=x=>x>0?"▲":x<0?"▼":"";
+const KEYS=["ca","ca_promo","mb_promo","mal_promo","vol","mb","mal","lc","cp"];
+const sum=rows=>{const o={};KEYS.forEach(q=>o[q]=0);rows.forEach(r=>KEYS.forEach(q=>o[q]+=r[q]));return o};
+const P=(rows,p)=>sum(rows.filter(r=>r.p===p));
+const T=rows=>({n:P(rows,"N"),n1:P(rows,"N-1")});
+const all=T(DATA.rows),ev=(a,b)=>a/b-1,rate=a=>a.lc/(a.cp+a.lc);
+const cats=DATA.categories.map((name,i)=>{const t=T(DATA.rows.filter(r=>r.c===i));return{i,name,...t,eCA:ev(t.n.ca,t.n1.ca),eV:ev(t.n.vol,t.n1.vol),eM:ev(t.n.mb,t.n1.mb),mal:t.n.mal/t.n.ca,mal1:t.n1.mal/t.n1.ca,loss:rate(t.n)}});
+const price=a=>a.ca/a.vol;
+const kpi=(l,v,d,e)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d ${cl(e)}">${ar(e)} ${d}</div></div>`;
+const title=(t)=>`<h1>${t}</h1>`;
+const mk=(el,cfg)=>new Chart(document.getElementById(el),Object.assign(cfg,{options:Object.assign({responsive:false,animation:false},cfg.options)}));
+const G="#aab2bd",B="#4285f4",O="#f29b4b",R="#d93025";
+
+/* S2 : macro */
+{const e=ev(all.n.ca,all.n1.ca),v=ev(all.n.vol,all.n1.vol),m=ev(all.n.mb,all.n1.mb),pr=ev(price(all.n),price(all.n1));
+ document.getElementById("s2").innerHTML=title("Ventes &amp; marges : juil. 2022 – juin 2023")+
+ `<div class="cols"><div style="width:230px">${kpi("CA net",k(all.n.ca)+" RMB",sp(e)+" vs N-1",e)}${kpi("Volume",k(all.n.vol)+" kg",sp(v)+" vs N-1",v)}${kpi("Prix moyen / kg",fmt(price(all.n),2)+" RMB",sp(pr,0)+" vs N-1",pr)}</div>
+ <div class="box" style="width:632px"><div class="ttl">Évolution du CA net</div><canvas id="c2" width="610" height="280"></canvas></div></div>
+ <div class="txt">Le CA net progresse de <b>${fmt(e*100,0)} %</b>, mais le volume bondit de <b>${fmt(v*100,0)} %</b> : on vend <b>plus, mais moins cher</b> (prix au kg ${fmt(pr*100,0)} %).</div>`;
+ const m2=(p,key)=>DATA.months.map((_,i)=>sum(DATA.rows.filter(r=>r.p===p&&r.m===i+1))[key]);
+ mk("c2",{type:"line",data:{labels:DATA.months,datasets:[{label:"CA net N",data:m2("N","ca"),borderColor:B,backgroundColor:B,tension:.3},{label:"CA net N-1",data:m2("N-1","ca"),borderColor:G,backgroundColor:G,tension:.3}]},
+  options:{plugins:{legend:{position:"top",labels:{boxWidth:14}}},scales:{y:{ticks:{callback:v=>k(v)}}}}});}
+
+/* S3 : catégories */
+{const rows=cats.slice().sort((a,b)=>b.n.ca-a.n.ca);const c=(v,t)=>`<td class="${cl(v)}">${t}</td>`;
+ const worst=cats.slice().sort((a,b)=>a.eCA-b.eCA)[0];
+ document.getElementById("s3").innerHTML=title("Une seule catégorie recule : les Solanacées")+
+ `<div class="box" style="padding:0"><table><tr><th>Catégorie</th><th>CA net</th><th>% Évol CA</th><th>Écart CA</th><th>Volume</th><th>% Évol Volume</th><th>Marge</th><th>% Évol Marge</th></tr>`+
+ rows.map(r=>`<tr id="r${r.i}"><td>${r.name}</td><td>${k(r.n.ca)}</td>${c(r.eCA,sp(r.eCA))}${c(r.n.ca-r.n1.ca,k(r.n.ca-r.n1.ca))}<td>${k(r.n.vol)}</td>${c(r.eV,sp(r.eV))}<td>${k(r.n.mb)}</td>${c(r.eM,sp(r.eM))}</tr>`).join("")+`</table></div>
+ <div class="txt">Cinq catégories sur six progressent. Les <b>Solanacées</b> (aubergines) chutent de <b>${fmt(-worst.eCA*100,1)} %</b> en CA et en volume : un problème de <b>demande ou de disponibilité</b>, pas de rentabilité (marge après pertes ${pc(worst.mal,0)}).</div>`;
+ const r=document.getElementById("r"+worst.i).getBoundingClientRect(),s=document.getElementById("s3").getBoundingClientRect();
+ document.getElementById("s3").insertAdjacentHTML("beforeend",`<div class="hl" style="left:${r.left-s.left-4}px;top:${r.top-s.top-3}px;width:${r.width+8}px;height:${r.height+6}px"></div>`);}
+
+/* S4 : pertes */
+{const rows=cats.slice().sort((a,b)=>a.mal-b.mal),w=rows[0];
+ document.getElementById("s4").innerHTML=title("Les pertes écrasent la marge des légumes aquatiques")+
+ `<div class="cols"><div class="box" style="width:560px"><div class="ttl">Marge après pertes (% CA)</div><canvas id="c4" width="540" height="290"></canvas></div>
+  <div style="width:290px;padding-top:40px">${kpi("Taux de perte",pc(w.loss),"le plus élevé des 6 catégories",-1)}${kpi("Marge après pertes",pc(w.mal),fmt((w.mal-w.mal1)*100,1)+" pt vs N-1",w.mal-w.mal1)}</div></div>
+  <div class="txt">« ${w.name} » perd <b>${pc(w.loss)}</b> de ses achats : sa marge après pertes est la plus faible (<b>${pc(w.mal,0)}</b>) et <b>recule</b> alors que les cinq autres catégories progressent.</div>`;
+ mk("c4",{type:"bar",data:{labels:rows.map(r=>r.name),datasets:[{label:"N-1",data:rows.map(r=>r.mal1),backgroundColor:G},{label:"N",data:rows.map(r=>r.mal),backgroundColor:rows.map(r=>r.i===w.i?R:B)}]},
+  options:{indexAxis:"y",plugins:{legend:{position:"top",labels:{boxWidth:14}}},scales:{x:{ticks:{callback:v=>fmt(v*100)+" %"}}}}});}
+
+/* S5 : remises */
+{const n=all.n,pr={ca:n.ca_promo,mb:n.mb_promo,mal:n.mal_promo},np={ca:n.ca-pr.ca,mb:n.mb-pr.mb,mal:n.mal-pr.mal};
+ document.getElementById("s5").innerHTML=title("Les remises détruisent la marge")+
+ `<div class="cols"><div class="box" style="width:560px"><div class="ttl">Marge avec vs sans remise (% CA)</div><canvas id="c5" width="540" height="290"></canvas></div>
+  <div style="width:290px;padding-top:40px">${kpi("% CA promo",pc(pr.ca/n.ca),"du CA net",0)}${kpi("Marge après pertes promo",pc(pr.mal/pr.ca),"vs "+pc(np.mal/np.ca)+" sans remise",-1)}</div></div>
+  <div class="txt">Les remises ne pèsent que <b>${pc(pr.ca/n.ca,0)}</b> du CA, mais elles ramènent la marge après pertes à <b>${pc(pr.mal/pr.ca,0)}</b> (contre <b>${pc(np.mal/np.ca,0)}</b> sans remise).</div>`;
+ mk("c5",{type:"bar",data:{labels:["Sans remise","Avec remise"],datasets:[{label:"Marge brute",data:[np.mb/np.ca,pr.mb/pr.ca],backgroundColor:B},{label:"Marge après pertes",data:[np.mal/np.ca,pr.mal/pr.ca],backgroundColor:O}]},
+  options:{plugins:{legend:{position:"top",labels:{boxWidth:14}}},scales:{y:{ticks:{callback:v=>fmt(v*100)+" %"}}}}});}
+
+/* S6 : conclusion */
+{const w=cats.slice().sort((a,b)=>a.mal-b.mal)[0],s=cats.slice().sort((a,b)=>a.eCA-b.eCA)[0];
+ const lcTot=all.n.lc,promo=all.n.ca_promo/all.n.ca;
+ document.getElementById("s6").innerHTML=title("<b>Conclusion :</b> croissance réelle, rentabilité fragile")+
+ `<ul class="concl" style="padding-left:22px;margin-top:26px">
+  <li><b>Réduire les pertes</b> en priorité sur « ${w.name} » (${pc(w.loss)} de perte, marge après pertes ${pc(w.mal,0)}). Au total les pertes coûtent <b>${k(lcTot)} RMB</b> par an.</li>
+  <li><b>Relancer les Solanacées</b> (CA ${sp(s.eCA,0)}) : vérifier ruptures, prix et mise en avant toute décision sur la gamme.</li>
+  <li><b>Encadrer les remises</b> : ${pc(promo,0)} du CA mais marge après pertes de ${pc(all.n.mal_promo/all.n.ca_promo,0)} ; les réserver aux produits à forte perte.</li>
+  <li><b>Suivre le prix moyen au kg</b> (${fmt(price(all.n),2)} RMB, ${sp(ev(price(all.n),price(all.n1)),0)}) : la hausse des volumes ne doit pas se faire au détriment de la marge.</li></ul>`;}
+</script></body></html>
