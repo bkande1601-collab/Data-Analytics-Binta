@@ -56,3 +56,7 @@ Le dashboard suit le modèle du cours : fond blanc, 5 KPI avec évolution vs N-1
 ```bash
 python -m src.build_dashboard      # à partir de data/gold/fact_ventes_jour.csv (versionné)
 ```
+
+## Livrables à rendre
+
+Dossier [`livrables/`](../livrables/) : `Presentation_Produits_Frais.pdf` (slides), `Dashboard_Produits_Frais.html` (dashboard interactif, à ouvrir dans un navigateur) et `Dashboard_Produits_Frais.pdf` (même contenu en PDF). La première version du dashboard, plus chargée en texte, est conservée dans `dashboard/archive/` à titre d'historique.

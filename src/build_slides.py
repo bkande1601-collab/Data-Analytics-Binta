@@ -30,6 +30,53 @@ def main() -> None:
     subprocess.run([chrome, "--headless=new", "--disable-gpu", "--no-pdf-header-footer", "--virtual-time-budget=5000",
                     f"--print-to-pdf={pdf}", page.as_uri()], check=True, capture_output=True)
     print("présentation écrite :", pdf)
+    export_dashboard_pdf(chrome, out_dir / "Dashboard_Produits_Frais.pdf")
+
+
+def export_dashboard_pdf(chrome: str, pdf) -> None:
+    """PDF du dashboard pour les envois par mail : une capture fidèle par page (Synthèse, Pertes & remises,
+    Instructions), assemblées en un PDF."""
+    import tempfile
+    from pathlib import Path
+
+    import pymupdf
+
+    base = (DASH / "dashboard.html").read_text(encoding="utf-8")
+    doc = pymupdf.open()
+    jpgs = []
+    with tempfile.TemporaryDirectory() as td:
+        for i in range(3):
+            page = Path(td) / f"p{i}.html"
+            page.write_text(base.replace("fillItems();render();",
+                            f"fillItems();document.querySelectorAll('nav button')[{i}].click();"), encoding="utf-8")
+            png = Path(td) / f"p{i}.png"
+            subprocess.run([chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--window-size=1300,930",
+                            "--virtual-time-budget=4000", f"--screenshot={png}", page.as_uri()], check=True, capture_output=True)
+            img = pymupdf.open(png)
+            rect = img[0].rect
+            jpg = img[0].get_pixmap(dpi=72).tobytes("jpg", jpg_quality=88)
+            jpgs.append(jpg)
+            doc.new_page(width=rect.width * 0.6, height=rect.height * 0.6).insert_image(
+                pymupdf.Rect(0, 0, rect.width * 0.6, rect.height * 0.6), stream=jpg)
+    doc.save(pdf, deflate=True, garbage=3)
+    print("dashboard PDF écrit :", pdf)
+    _inject_static_fallback(jpgs)
+
+
+def _inject_static_fallback(jpgs: list[bytes]) -> None:
+    """Ajoute des captures statiques, affichées uniquement si JavaScript est bloqué (aperçu de messagerie,
+    visionneuse sécurisée…). Quand le script tourne, elles sont masquées immédiatement."""
+    import base64
+
+    imgs = "".join(f'<img alt="Aperçu du dashboard" style="max-width:100%;display:block;margin:0 auto 14px;border:1px solid #d9dee5" '
+                   f'src="data:image/jpeg;base64,{base64.b64encode(j).decode()}">' for j in jpgs)
+    block = ('<div id="nojs" style="padding:12px;font-family:Arial,sans-serif"><p style="text-align:center;color:#6b7280">'
+             "Aperçu statique : ouvrez ce fichier dans Chrome, Safari ou Firefox pour utiliser les filtres.</p>"
+             f"{imgs}</div><script>document.getElementById('nojs').style.display='none'</script>")
+    path = DASH / "dashboard.html"
+    html = path.read_text(encoding="utf-8")
+    if 'id="nojs"' not in html:
+        path.write_text(html.replace('<div class="wrap">', block + '\n<div class="wrap">', 1), encoding="utf-8")
 
 
 if __name__ == "__main__":
